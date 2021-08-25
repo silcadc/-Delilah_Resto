@@ -1,0 +1,278 @@
+---
+openapi: 3.0.0
+info:
+  title: Delilah Resto
+  description: This is a documentation for Delilah Resto.
+  contact:
+    email: silenadangond1@gmail.com
+  version: 1.0.0
+servers:
+- url: https://virtserver.swaggerhub.com/silcadc/Delilah_Resto/1.0.0
+  description: SwaggerHub API Auto Mocking
+tags:
+- name: users
+  description: here you can find registered users
+- name: products
+  description: here you can find products
+- name: orders
+  description: here you can find orders
+paths:
+  /users:
+    get:
+      tags:
+      - users
+      summary: get users
+      description: allows to get users
+      responses:
+        "200":
+          description: search users matching criteria
+        "400":
+          description: request not found
+          content:
+            application/json:
+              schema:
+                type: string
+                example: '{"message":"Error 404. Page or request not found"}'
+    post:
+      tags:
+      - users
+      summary: create an new user
+      requestBody:
+        description: fields to add
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userItem'
+      responses:
+        "201":
+          description: item created
+        "404":
+          description: invalid input, object invalid
+  /users/login:
+    get:
+      tags:
+      - users
+      summary: entry personal account
+      description: allows access to personal account
+      parameters:
+      - name: username
+        in: query
+        description: the user name for login
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: password
+        in: query
+        description: the password for login in clear text
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: you are on your account
+        "400":
+          description: request not found
+  /products:
+    get:
+      tags:
+      - products
+      summary: get all products
+      description: returns all products
+      responses:
+        "200":
+          description: successful operation
+        "400":
+          description: request not found
+    post:
+      tags:
+      - products
+      summary: an administrator user will be able to create new products
+      requestBody:
+        description: products to add
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/productItem'
+      responses:
+        "200":
+          description: successful operation
+        "400":
+          description: you aren't an administrator
+  /products/{productId}:
+    get:
+      tags:
+      - products
+      summary: get a product by Id
+      parameters:
+      - name: productId
+        in: path
+        description: product that needs to be fetched.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: successful operation
+        "400":
+          description: request not found
+    put:
+      tags:
+      - products
+      summary: updated products
+      description: an administrator user will be able to edit the products
+      parameters:
+      - name: productId
+        in: path
+        description: product that need to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      requestBody:
+        description: Updated product
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/productItem'
+        required: true
+      responses:
+        "200":
+          description: update product
+        "400":
+          description: you aren't an administrator
+    delete:
+      tags:
+      - products
+      summary: to delete products by ID
+      description: an administrator user will be able to delete the products
+      parameters:
+      - name: productId
+        in: path
+        description: product that needs to be deleted
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: update product
+        "400":
+          description: you aren't an administrator
+  /orders:
+    get:
+      tags:
+      - orders
+      summary: get all orders
+      description: returns all orders
+      responses:
+        "200":
+          description: successful operation
+        "400":
+          description: request not found
+    post:
+      tags:
+      - orders
+      summary: an user can generate a new order
+      requestBody:
+        description: user generated order
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ordersItem'
+        required: true
+      responses:
+        "200":
+          description: successful operation
+        "400":
+          description: invalid order
+  /orders/{orderId}:
+    put:
+      tags:
+      - orders
+      summary: order updated
+      description: admin user can update order status
+      parameters:
+      - name: orderId
+        in: path
+        description: order that need to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      requestBody:
+        description: Updated user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ordersItem'
+        required: true
+      responses:
+        "200":
+          description: successful operation
+        "400":
+          description: invalid order
+components:
+  schemas:
+    userItem:
+      type: object
+      properties:
+        username:
+          type: string
+        fullname:
+          type: string
+        email:
+          type: string
+        telephone:
+          type: integer
+        address:
+          type: string
+        password:
+          type: string
+        is_admin:
+          type: boolean
+    productItem:
+      type: object
+      properties:
+        name:
+          type: string
+        price:
+          type: number
+          format: decimal
+        picture:
+          type: string
+        is_available:
+          type: boolean
+    ordersItem:
+      type: object
+      properties:
+        id_user:
+          type: string
+        total:
+          type: number
+          format: decimal
+        payment:
+          type: string
+        address:
+          type: string
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+  requestBodies:
+    products:
+      description: products to edit
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/productItem'
+      required: true
