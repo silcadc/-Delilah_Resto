@@ -222,16 +222,16 @@ server.get('/orders/:id', async function (req, res) {
     .catch(error => console.error(error))
 });
 
-server.put('/orders/:id', async (req, res) => {
+server.patch('/orders/:id', async (req, res) => {
     console.log("edicion de orders")
     let id_order = req.params.id;
     const {
-        idusers, total, payment, address, date, status
+        status
     } = req.body
-    let ordersInfo = [idusers, total, payment, address, date, status, id_order];
+    let ordersInfo = [status, id_order];
     await sequelize.query(
-        //'UPDATE orders SET `status`= ? WHERE idorders = ?',
-        'UPDATE orders SET `idusers`= ?, `total`= ?, `payment`= ?, `address`= ?, `date`= ?, `status`= ? WHERE idorders = ?',
+        'UPDATE orders SET `status`= ? WHERE idorders = ?',
+        //'UPDATE orders SET `idusers`= ?, `total`= ?, `payment`= ?, `address`= ?, `date`= ?, `status`= ? WHERE idorders = ?',
         {
             replacements: ordersInfo,
             type: sequelize.QueryTypes.UPDATE
