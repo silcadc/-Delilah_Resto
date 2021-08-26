@@ -7,13 +7,13 @@ const path = 'mysql://root:admin@localhost:3307/delilah_resto';//la cadena de co
 const sequelize = new Sequelize(path);//creo la instancia de sequelize
 
 //luego nos autenticamos
-sequelize.authenticate().then(() => {//authenticate nos conecta a la BD, es una promesa
-    //me permite mirar si estoy conectada o no
-    console.log('connected to the database');
-}).catch(err => {
-    console.error('connection error:', err);
-}).finally(() => {
-    sequelize.close();
-});
+// sequelize.authenticate().then(() => {//authenticate nos conecta a la BD, es una promesa
+//     //me permite mirar si estoy conectada o no
+//     console.log('connected to the database');
+// }).catch(err => {
+//     console.error('connection error:', err);
+// }).finally(() => {
+//     sequelize.close();
+// });
 module.exports = sequelize;//la funcion sequelize es exportada
 //para poder usarla en otro lado

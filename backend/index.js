@@ -5,9 +5,9 @@ let jwt = require('jsonwebtoken');
 let expressJwt = require('express-jwt');
 const helmet = require('helmet');
 const rateLimit = require("express-rate-limit");
+const sequelize = require('./database/conexion');
 
-const sequelize = require('./database/conexion.js');
-const {getAllUsers, insertUsers, getLogin} = require("./database/users.js")
+//const {getAllUsers, insertUsers, getLogin} = require("./database/users.js")
 
 const port = 3000;
 const server = express();
@@ -20,7 +20,7 @@ server.listen(port, () => {
     console.log(`Server listeting on port ${port}`)
 });
 
-server.use(expressJwt({ secret: jwtClave, algorithms: ['sha1', 'RS256', 'HS256']}).unless({ path: ["/login"] }));
+//server.use(expressJwt({ secret: jwtClave, algorithms: ['sha1', 'RS256', 'HS256']}).unless({ path: ["/login"] }));
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -28,39 +28,52 @@ const limiter = rateLimit({
 });
 server.use(limiter);
 
-server.get('/users', function (req, res) {
-    getAllUsers()
-    .then(users => {
+server.get('/users', async function (req, res) {
+    await sequelize.query(
+        'SELECT * FROM users',
+        {        
+            type: sequelize.QueryTypes.SELECT
+        }
+    )
+    .then(function (users) {
         res.status(200).send(users);
     })
-    .catch(error => {
-        res.status(500).send(error)
-    })
+    .catch(error => console.log(error))
 });
 
-server.post('/users ', (req, res) => {
+server.post('/users', async (req, res) => {
+    console.log("entro a postUsuarios")
     const {
         username, fullname, email, telephone, address, password, is_admin
     } = req.body
     let userInfo = [username, fullname, email, telephone, address, password, is_admin];
-    insertUsers(userInfo)
-    .then(response => {
-        res.status(200).send("user created successfully") 
+    await sequelize.query(
+        'INSERT INTO users (`username`, `fullname`, `email`, `telephone`, `address`, `password`, `is_admin`) VALUES(?, ?, ?, ?, ?, ?, ?)',
+        {
+            replacements: userInfo,
+            type: sequelize.QueryTypes.INSERT
+        }
+    )
+    .then(function (users) {
+        console.log("then de insertUsers")
+        console.log(`data inserted correctly + ${users}`)
+        res.status(200).send("user created successfully")
     })
-    .catch(error => {
-        res.status(500).send(error)
-    })
+    .catch(error => res.status(500).send(error))
 });
 
 server.get('/users/login', function (req, res) {
     const {
         username, password
     } = req.body
-    getUserLogin(username, password) 
-    .then(user => {
+    sequelize.query(
+        `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`,
+        {        
+            type: sequelize.QueryTypes.SELECT
+        }
+    )
+    .then(function (user) {
         res.status(200).send(user);
     })
-    .catch(error => {
-        res.status(500).send(error)
-    })
+    .catch(error => res.status(500).send(error))
 });
