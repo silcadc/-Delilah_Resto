@@ -28,6 +28,7 @@ const limiter = rateLimit({
 });
 server.use(limiter);
 
+//USERS
 server.get('/users', async function (req, res) {
     await sequelize.query(
         'SELECT * FROM users',
@@ -74,6 +75,42 @@ server.get('/users/login', function (req, res) {
     )
     .then(function (user) {
         res.status(200).send(user);
+    })
+    .catch(error => res.status(500).send(error))
+});
+
+//PRODUCTS
+server.get('/products', async function (req, res) {
+    console.log("get products")
+    await sequelize.query(
+        'SELECT * FROM products',
+        {        
+            type: sequelize.QueryTypes.SELECT
+        }
+    )
+    .then(function (products) {
+        res.status(200).send(products);
+    })
+    .catch(error => console.error(error))
+});
+
+server.post('/products', async (req, res) => {
+    console.log("envio products")
+    const {
+        name, price, picture, is_available
+    } = req.body
+    let productsInfo = [name, price, picture, is_available];
+    await sequelize.query(
+        'INSERT INTO products (`name`, `price`, `picture`, `is_available`) VALUES(?, ?, ?, ?)',
+        {
+            replacements: productsInfo,
+            type: sequelize.QueryTypes.INSERT
+        }
+    )
+    .then(function (products) {
+        console.log("then de productsInfo")
+        console.log(`data inserted correctly + ${products}`)
+        res.status(200).send("product created successfully")
     })
     .catch(error => res.status(500).send(error))
 });
