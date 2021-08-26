@@ -114,3 +114,132 @@ server.post('/products', async (req, res) => {
     })
     .catch(error => res.status(500).send(error))
 });
+
+server.get('/products/:id', async function (req, res) {
+    console.log("get products")
+    let id_product = req.params.id;
+    await sequelize.query(
+        'SELECT * FROM products WHERE idproducts = ?',
+        {        
+            replacements: [id_product],
+            type: sequelize.QueryTypes.SELECT
+        }
+    )
+    .then(function (products) {
+        res.status(200).send(products);
+    })
+    .catch(error => console.error(error))
+});
+
+server.put('/products/:id', async (req, res) => {
+    console.log("edicion de products")
+    let id_product = req.params.id;
+    const {
+        name, price, picture, is_available
+    } = req.body
+    let productsInfo = [name, price, picture, is_available, id_product];
+    await sequelize.query(
+        'UPDATE products SET `name`= ?, `price`= ?, `picture`= ?, `is_available`= ? WHERE idproducts = ?',
+        {
+            replacements: productsInfo,
+            type: sequelize.QueryTypes.UPDATE
+        }
+    )
+    .then(function (products) {
+        console.log(`data updated correctly + ${products}`)
+        res.status(200).send("product updated successfully")
+    })
+    .catch(error => res.status(500).send(error))
+});
+
+server.delete('/products/:id', async (req, res) => {
+    console.log("envio products")
+    let id_product = req.params.id;
+    let productsInfo = [id_product];
+    await sequelize.query(
+        'DELETE FROM products WHERE idproducts = ?',
+        {
+            replacements: productsInfo,
+            type: sequelize.QueryTypes.DELETE
+        }
+    )
+    .then(function (products) {
+        console.log(`data deleted correctly`)
+        res.status(200).send("product deleted successfully")
+    })
+    .catch(error => res.status(500).send(error))
+});
+
+//ORDERS
+server.get('/orders', async function (req, res) {
+    console.log("get orders")
+    await sequelize.query(
+        'SELECT * FROM orders',
+        {        
+            type: sequelize.QueryTypes.SELECT
+        }
+    )
+    .then(function (orders) {
+        res.status(200).send(orders);
+    })
+    .catch(error => console.error(error))
+});
+
+server.post('/orders', async (req, res) => {
+    console.log("envio de las orders")
+    const {
+        idusers, total, payment, address, date, status
+    } = req.body
+    let ordersInfo = [idusers, total, payment, address, date, status];
+    await sequelize.query(
+        'INSERT INTO orders (`idusers`, `total`, `payment`, `address`, `date`, `status`) VALUES(?, ?, ?, ?, ?, ?)',
+        {
+            replacements: ordersInfo,
+            type: sequelize.QueryTypes.INSERT
+        }
+    )
+    .then(function (orders) {
+        console.log("then de ordersInfo")
+        console.log(`data inserted correctly + ${orders}`)
+        res.status(200).send("order created successfully")
+    })
+    .catch(error => res.status(500).send(error))
+});
+
+server.get('/orders/:id', async function (req, res) {
+    console.log("get orders/id")
+    let id_order = req.params.id;
+    await sequelize.query(
+        'SELECT * FROM orders WHERE idorders = ?',
+        {        
+            replacements: [id_order],
+            type: sequelize.QueryTypes.SELECT
+        }
+    )
+    .then(function (order) {
+        res.status(200).send(order);
+    })
+    .catch(error => console.error(error))
+});
+
+server.put('/orders/:id', async (req, res) => {
+    console.log("edicion de orders")
+    let id_order = req.params.id;
+    const {
+        idusers, total, payment, address, date, status
+    } = req.body
+    let ordersInfo = [idusers, total, payment, address, date, status, id_order];
+    await sequelize.query(
+        //'UPDATE orders SET `status`= ? WHERE idorders = ?',
+        'UPDATE orders SET `idusers`= ?, `total`= ?, `payment`= ?, `address`= ?, `date`= ?, `status`= ? WHERE idorders = ?',
+        {
+            replacements: ordersInfo,
+            type: sequelize.QueryTypes.UPDATE
+        }
+    )
+    .then(function (orders) {
+        console.log(`data updated correctly + ${orders}`)
+        res.status(200).send("orders updated successfully")
+    })
+    .catch(error => res.status(500).send(error))
+});

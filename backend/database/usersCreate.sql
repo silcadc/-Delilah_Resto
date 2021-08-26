@@ -18,3 +18,19 @@ CREATE TABLE `delilah_resto`.`products` (
   `is_available` bit(1) DEFAULT NULL,
   PRIMARY KEY (`idproducts`)
 )
+
+CREATE TABLE `delilah_resto`.`orders` (
+  `idorders` INT NOT NULL AUTO_INCREMENT,
+  `idusers` INT NULL,
+  `total` DECIMAL(10,2) NULL,
+  `payment` VARCHAR(45) NULL,
+  `address` VARCHAR(45) NULL,
+  `date` DATETIME NULL,
+  `status` VARCHAR(45) NULL,
+  PRIMARY KEY (`idorders`),
+  INDEX `idusers_idx` (`idusers` ASC) VISIBLE,
+  CONSTRAINT `idusers`
+    FOREIGN KEY (`idusers`)
+    REFERENCES `delilah_resto`.`users` (`idusers`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION);
