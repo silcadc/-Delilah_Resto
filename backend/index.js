@@ -20,7 +20,11 @@ server.listen(port, () => {
     console.log(`Server listeting on port ${port}`)
 });
 
-//server.use(expressJwt({ secret: jwtClave, algorithms: ['sha1', 'RS256', 'HS256']}).unless({ path: ["/login"] }));
+
+
+//creamos una clave para la incriptacion del token
+var jwtClave = "5XSNGM0bTFjNCpEV0ZNTElORS02Mg==";
+server.use(expressJwt({ secret: jwtClave, algorithms: ['sha1', 'RS256', 'HS256']}).unless({ path: ["/users/login", "/users"] }));
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -63,7 +67,7 @@ server.post('/users', async (req, res) => {
     .catch(error => res.status(500).send(error))
 });
 
-server.get('/users/login', function (req, res) {
+server.get("/users/login", function (req, res) {
     const {
         username, password
     } = req.body
@@ -74,9 +78,23 @@ server.get('/users/login', function (req, res) {
         }
     )
     .then(function (user) {
-        res.status(200).send(user);
+        console.log(user)
+
+        //Creamos el token para pasar
+        let token = jwt.sign({
+            usuario: username
+        }, jwtClave);
+
+        let sesionToken = {
+            token: token
+        }   
+        //envio Token
+        res.status(200).send(sesionToken);
+        //res.status(200).send(user);
     })
-    .catch(error => res.status(500).send(error))
+    .catch(function (error) {
+        res.status(500).send(error)
+    })
 });
 
 //PRODUCTS
@@ -171,8 +189,8 @@ server.delete('/products/:id', async (req, res) => {
 });
 
 //ORDERS
-server.get('/orders', async function (req, res) {
-    console.log("get orders")
+server.get('/orders', async function (req, res) {//solo permitido para un admin
+    console.log("get orders")//el user normal llamara solo sus pedidos
     await sequelize.query(
         'SELECT * FROM orders',
         {        
@@ -188,8 +206,9 @@ server.get('/orders', async function (req, res) {
 server.post('/orders', async (req, res) => {
     console.log("envio de las orders")
     const {
-        idusers, total, payment, address, date, status
+        idusers, total, payment, address, date, status, array_products
     } = req.body
+    console.log(`aqui el array: ${array_products}`)
     let ordersInfo = [idusers, total, payment, address, date, status];
     await sequelize.query(
         'INSERT INTO orders (`idusers`, `total`, `payment`, `address`, `date`, `status`) VALUES(?, ?, ?, ?, ?, ?)',
@@ -199,12 +218,26 @@ server.post('/orders', async (req, res) => {
         }
     )
     .then(function (orders) {
-        console.log("then de ordersInfo")
+        console.log(`aqui orderssss: ${orders}`)
+        let id_order = orders[0];
+        console.log(`eliminado el 1: ${id_order}`)
         console.log(`data inserted correctly + ${orders}`)
+        //aqui creo la tabla
+        array_products.forEach(idproduct => {
+            sequelize.query(
+                'INSERT INTO orders_products (`idorders`, `idproducts`) VALUES(?, ?)',
+                {
+                    replacements: [id_order, idproduct],
+                    type: sequelize.QueryTypes.INSERT
+                }
+            )
+        }).then(function (product) {
+            console.log(`Agregado el producto ${product}`)
+        })
         res.status(200).send("order created successfully")
     })
     .catch(error => res.status(500).send(error))
-});
+})
 
 server.get('/orders/:id', async function (req, res) {
     console.log("get orders/id")
@@ -242,4 +275,27 @@ server.patch('/orders/:id', async (req, res) => {
         res.status(200).send("orders updated successfully")
     })
     .catch(error => res.status(500).send(error))
+});
+
+
+// Middleware para manejo de errores
+server.use((err, req, res, next) => {
+    let status = '500';
+    const dataError = {
+      codigo: '',
+      mensaje: '',
+      error: ''
+    }
+    if(err.name === 'UnauthorizedError') {
+      dataError.codigo = '100';
+      dataError.mensaje = 'No está autorizado a esta ruta';
+      status = '401';
+    }
+    else {
+      dataError.codigo = '101';
+      dataError.mensaje = 'Ocurrio un error inesperado del lado del servidor';
+      dataError.error = err;
+      status = '500';
+    }
+    res.status(status).send(JSON.stringify(dataError));
 });
