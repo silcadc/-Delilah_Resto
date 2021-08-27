@@ -7,8 +7,6 @@ const helmet = require('helmet');
 const rateLimit = require("express-rate-limit");
 const sequelize = require('./database/conexion');
 
-//const {getAllUsers, insertUsers, getLogin} = require("./database/users.js")
-
 const port = 3000;
 const server = express();
 server.use(express.json());
@@ -20,7 +18,7 @@ server.listen(port, () => {
     console.log(`Server listeting on port ${port}`)
 });
 
-//creamos una clave para la incriptacion del token
+//key for token enrollment
 let jwtClave = "5XSNGM0bTFjNCpEV0ZNTElORS02Mg==";
 server.use(expressJwt({ secret: jwtClave, algorithms: ['sha1', 'RS256', 'HS256']}).unless({ path: ["/users/login", "/users"] }));
 
@@ -30,35 +28,24 @@ const limiter = rateLimit({
 });
 server.use(limiter);
 
-// Middleware para authorization de admin
+//Middleware for admin authorization
 const authorization_Admin = (req, res, next) => {
     try {
-        console.log("1.entro al try")
         const token = req.headers.authorization.split(" ")[1];
-        console.log("2.despues del split")
-        console.log("3." + token)
         const verify_Token = jwt.verify(token, jwtClave);
-        console.log("4. despues de verify token")
         if(verify_Token){
-            console.log("5. mirando las condiciones")
             req.user = verify_Token;
-            console.log(req.user)
-            console.log(verify_Token)
-            console.log("7.verificando el usuario admin")
             return next();
         }
     } catch (err) {
-        res.json({err: 'Error al validar el rol como administrador'})
+        res.json({err: 'Failed to validate the role as administrator'})
     }
 };
 
 //USERS
 server.get('/users', authorization_Admin, async function (req, res) {
-    console.log('10.viendo el is_admin')
-    console.log(req.user)
     let is_admin = req.user.is_admin
     let iduser = req.user.user
-    console.log(is_admin)
     let sqlquery = 'SELECT * FROM users'
     if(is_admin === false) {
         sqlquery = sqlquery + ` WHERE idusers = '${iduser}'` 
@@ -76,7 +63,6 @@ server.get('/users', authorization_Admin, async function (req, res) {
 });
 
 server.post('/users', async (req, res) => {
-    console.log("entro a postUsuarios")
     const {
         username, fullname, email, telephone, address, password, is_admin
     } = req.body
@@ -89,8 +75,6 @@ server.post('/users', async (req, res) => {
         }
     )
     .then(function (users) {
-        console.log("then de insertUsers")
-        console.log(`data inserted correctly + ${users}`)
         res.status(200).send("user created successfully")
     })
     .catch(error => res.status(500).send(error))
@@ -107,31 +91,24 @@ server.get("/users/login", function (req, res) {
         }
     )
     .then(function (user) {
-        console.log("impresion de user " + user)
-        console.log(user)
+        if (user.length === 0){
+            return res.status(400).send("user not found")
+        }
         let res_idUser = user[0].idusers;
         let res_is_admin = user[0].is_admin;
-        console.log("impresion de user " + res_is_admin)
-        console.log(Boolean(res_is_admin))
-        //Creamos el token para pasar
+        //creation of the token to pass
         let token = jwt.sign({
             user: res_idUser,
             is_admin: Boolean(res_is_admin)
         }, jwtClave);
-
         let sesionToken = {
             token: token
         }   
-        // req.is_admin = Boolean(res_is_admin)
-        // console.log("asdf")
-
-        // console.log(req.is_admin)
-        //envio Token
         res.status(200).send(sesionToken);
-        console.log(sesionToken)
-        //res.status(200).send(user);
     })
     .catch(function (error) {
+        console.log("way?")
+        console.log(error)
         res.status(500).send(error)
     })
 });
@@ -139,7 +116,6 @@ server.get("/users/login", function (req, res) {
 //PRODUCTS
 server.get('/products', async function (req, res) {
     console.log("get products")
-    
     await sequelize.query(
         'SELECT * FROM products',
         {        
@@ -153,10 +129,9 @@ server.get('/products', async function (req, res) {
 });
 
 server.post('/products', authorization_Admin, async (req, res) => {
-    console.log("envio products")
     let is_admin = req.user.is_admin
     if (is_admin === false){
-        return res.status(401).send('Usted no esta autorizado para crear productos')
+        return res.status(401).send('You are not authorized to create products')
     }    
     const {
         name, price, picture, is_available
@@ -170,15 +145,12 @@ server.post('/products', authorization_Admin, async (req, res) => {
         }
     )
     .then(function (products) {
-        console.log("then de productsInfo")
-        console.log(`data inserted correctly + ${products}`)
         res.status(200).send("product created successfully")
     })
     .catch(error => res.status(500).send(error))
 });
 
 server.get('/products/:id', async function (req, res) {
-    console.log("get products")
     let id_product = req.params.id;
     await sequelize.query(
         'SELECT * FROM products WHERE idproducts = ?',
@@ -194,11 +166,10 @@ server.get('/products/:id', async function (req, res) {
 });
 
 server.put('/products/:id', authorization_Admin, async (req, res) => {
-    console.log("edicion de products")
     let is_admin = req.user.is_admin
     let id_product = req.params.id;
     if (is_admin === false){
-        return res.status(401).send('No esta autorizado para hacer modificacion')
+        return res.status(401).send('You are not authorized to make modifications')
     }      
     const {
         name, price, picture, is_available
@@ -219,10 +190,9 @@ server.put('/products/:id', authorization_Admin, async (req, res) => {
 });
 
 server.delete('/products/:id', authorization_Admin, async (req, res) => {
-    console.log("envio products")
     let is_admin = req.user.is_admin
     if (is_admin === false){
-        return res.status(401).send('Usted no esta autorizado para borrar productos')
+        return res.status(401).send('You are not authorized to delete products')
     }    
     let id_product = req.params.id;
     let productsInfo = [id_product];
@@ -241,13 +211,10 @@ server.delete('/products/:id', authorization_Admin, async (req, res) => {
 });
 
 //ORDERS
-server.get('/orders', authorization_Admin, async function (req, res) {//solo permitido para un admin
-    console.log("get orders")//el user normal llamara solo sus pedidos
+server.get('/orders', authorization_Admin, async function (req, res) {
     let is_admin = req.user.is_admin
     let iduser = req.user.user
-    console.log(is_admin)
     let sqlquery = "SELECT orders.idorders, orders.idusers, orders.total, orders.payment, orders.address, orders.date, orders.status, products.idproducts, products.name, products.price, products.picture, products.is_available FROM orders INNER JOIN orders_products ON orders.idorders = orders_products.idorders INNER JOIN products ON orders_products.idproducts = products.idproducts "
-
     if(is_admin === false) {
         sqlquery = sqlquery + ` WHERE idusers = '${iduser}'` 
     }
@@ -263,13 +230,12 @@ server.get('/orders', authorization_Admin, async function (req, res) {//solo per
     .catch(error => console.error(error))
 });
 
-server.post('/orders', async (req, res) => {
-    console.log("envio de las orders")
+server.post('/orders', authorization_Admin, async (req, res) => {
+    let iduser = req.user.user
     const {
-        idusers, total, payment, address, date, status, array_products
+        total, payment, address, date, status, array_products
     } = req.body
-    console.log(`aqui el array: ${array_products}`)
-    let ordersInfo = [idusers, total, payment, address, date, status];
+    let ordersInfo = [iduser, total, payment, address, date, status];
     await sequelize.query(
         'INSERT INTO orders (`idusers`, `total`, `payment`, `address`, `date`, `status`) VALUES(?, ?, ?, ?, ?, ?)',
         {
@@ -278,11 +244,7 @@ server.post('/orders', async (req, res) => {
         }
     )
     .then(function (orders) {
-        console.log(`aqui orderssss: ${orders}`)
         let id_order = orders[0];
-        console.log(`eliminado el 1: ${id_order}`)
-        console.log(`data inserted correctly + ${orders}`)
-        //aqui creo la tabla
         array_products.forEach(idproduct => {
             sequelize.query(
                 'INSERT INTO orders_products (`idorders`, `idproducts`) VALUES(?, ?)',
@@ -297,10 +259,9 @@ server.post('/orders', async (req, res) => {
     .catch(error => {
         res.status(500).send(error)
     })
-})
+});
 
 server.get('/orders/:id', async function (req, res) {
-    console.log("get orders/id")
     let id_order = req.params.id;
     await sequelize.query(
         'SELECT * FROM orders WHERE idorders = ?',
@@ -316,7 +277,6 @@ server.get('/orders/:id', async function (req, res) {
 });
 
 server.patch('/orders/:id', async (req, res) => {
-    console.log("edicion de orders")
     let id_order = req.params.id;
     const {
         status
@@ -324,21 +284,18 @@ server.patch('/orders/:id', async (req, res) => {
     let ordersInfo = [status, id_order];
     await sequelize.query(
         'UPDATE orders SET `status`= ? WHERE idorders = ?',
-        //'UPDATE orders SET `idusers`= ?, `total`= ?, `payment`= ?, `address`= ?, `date`= ?, `status`= ? WHERE idorders = ?',
         {
             replacements: ordersInfo,
             type: sequelize.QueryTypes.UPDATE
         }
     )
     .then(function (orders) {
-        console.log(`data updated correctly + ${orders}`)
         res.status(200).send("orders updated successfully")
     })
     .catch(error => res.status(500).send(error))
 });
 
-
-// Middleware para manejo de errores
+//Middleware for error handling
 server.use((err, req, res, next) => {
     let status = '500';
     const dataError = {
@@ -348,15 +305,14 @@ server.use((err, req, res, next) => {
     }
     if(err.name === 'UnauthorizedError') {
       dataError.codigo = '100';
-      dataError.mensaje = 'No está autorizado a esta ruta';
+      dataError.mensaje = 'You are not authorized to this route';
       status = '401';
     }
     else {
       dataError.codigo = '101';
-      dataError.mensaje = 'Ocurrio un error inesperado del lado del servidor';
+      dataError.mensaje = 'An unexpected server-side error occurred';
       dataError.error = err;
       status = '500';
     }
     res.status(status).send(JSON.stringify(dataError));
 });
-

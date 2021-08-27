@@ -102,13 +102,13 @@ paths:
           description: successful operation
         "400":
           description: you aren't an administrator
-  /products/{productId}:
+  /products/{id}:
     get:
       tags:
       - products
       summary: get a product by Id
       parameters:
-      - name: productId
+      - name: id
         in: path
         description: product that needs to be fetched.
         required: true
@@ -127,7 +127,7 @@ paths:
       summary: updated products
       description: an administrator user will be able to edit the products
       parameters:
-      - name: productId
+      - name: id
         in: path
         description: product that need to be updated
         required: true
@@ -153,7 +153,7 @@ paths:
       summary: to delete products by ID
       description: an administrator user will be able to delete the products
       parameters:
-      - name: productId
+      - name: id
         in: path
         description: product that needs to be deleted
         required: true
@@ -193,14 +193,32 @@ paths:
           description: successful operation
         "400":
           description: invalid order
-  /orders/{orderId}:
-    put:
+  /orders/{id}:
+    get:
+      tags:
+      - orders
+      summary: get a order by Id
+      parameters:
+      - name: id
+        in: path
+        description: order that needs to be fetched.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: successful operation
+        "400":
+          description: request not found
+    patch:
       tags:
       - orders
       summary: order updated
       description: admin user can update order status
       parameters:
-      - name: orderId
+      - name: id
         in: path
         description: order that need to be updated
         required: true
@@ -254,8 +272,6 @@ components:
     ordersItem:
       type: object
       properties:
-        id_user:
-          type: string
         total:
           type: number
           format: decimal
@@ -268,6 +284,10 @@ components:
           format: date
         status:
           type: string
+        array_products:
+          type: array
+          items:
+            type: integer
   requestBodies:
     products:
       description: products to edit
