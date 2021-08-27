@@ -20,10 +20,8 @@ server.listen(port, () => {
     console.log(`Server listeting on port ${port}`)
 });
 
-
-
 //creamos una clave para la incriptacion del token
-var jwtClave = "5XSNGM0bTFjNCpEV0ZNTElORS02Mg==";
+let jwtClave = "5XSNGM0bTFjNCpEV0ZNTElORS02Mg==";
 server.use(expressJwt({ secret: jwtClave, algorithms: ['sha1', 'RS256', 'HS256']}).unless({ path: ["/users/login", "/users"] }));
 
 const limiter = rateLimit({
@@ -32,10 +30,41 @@ const limiter = rateLimit({
 });
 server.use(limiter);
 
+// Middleware para authorization de admin
+const authorization_Admin = (req, res, next) => {
+    try {
+        console.log("1.entro al try")
+        const token = req.headers.authorization.split(" ")[1];
+        console.log("2.despues del split")
+        console.log("3." + token)
+        const verify_Token = jwt.verify(token, jwtClave);
+        console.log("4. despues de verify token")
+        if(verify_Token){
+            console.log("5. mirando las condiciones")
+            req.user = verify_Token;
+            console.log(req.user)
+            console.log(verify_Token)
+            console.log("7.verificando el usuario admin")
+            return next();
+        }
+    } catch (err) {
+        res.json({err: 'Error al validar el rol como administrador'})
+    }
+};
+
 //USERS
-server.get('/users', async function (req, res) {
+server.get('/users', authorization_Admin, async function (req, res) {
+    console.log('10.viendo el is_admin')
+    console.log(req.user)
+    let is_admin = req.user.is_admin
+    let iduser = req.user.user
+    console.log(is_admin)
+    let sqlquery = 'SELECT * FROM users'
+    if(is_admin === false) {
+        sqlquery = sqlquery + ` WHERE idusers = '${iduser}'` 
+    }
     await sequelize.query(
-        'SELECT * FROM users',
+        sqlquery,
         {        
             type: sequelize.QueryTypes.SELECT
         }
@@ -78,18 +107,28 @@ server.get("/users/login", function (req, res) {
         }
     )
     .then(function (user) {
+        console.log("impresion de user " + user)
         console.log(user)
-
+        let res_idUser = user[0].idusers;
+        let res_is_admin = user[0].is_admin;
+        console.log("impresion de user " + res_is_admin)
+        console.log(Boolean(res_is_admin))
         //Creamos el token para pasar
         let token = jwt.sign({
-            usuario: username
+            user: res_idUser,
+            is_admin: Boolean(res_is_admin)
         }, jwtClave);
 
         let sesionToken = {
             token: token
         }   
+        // req.is_admin = Boolean(res_is_admin)
+        // console.log("asdf")
+
+        // console.log(req.is_admin)
         //envio Token
         res.status(200).send(sesionToken);
+        console.log(sesionToken)
         //res.status(200).send(user);
     })
     .catch(function (error) {
@@ -100,6 +139,7 @@ server.get("/users/login", function (req, res) {
 //PRODUCTS
 server.get('/products', async function (req, res) {
     console.log("get products")
+    
     await sequelize.query(
         'SELECT * FROM products',
         {        
@@ -112,8 +152,12 @@ server.get('/products', async function (req, res) {
     .catch(error => console.error(error))
 });
 
-server.post('/products', async (req, res) => {
+server.post('/products', authorization_Admin, async (req, res) => {
     console.log("envio products")
+    let is_admin = req.user.is_admin
+    if (is_admin === false){
+        return res.status(401).send('Usted no esta autorizado para crear productos')
+    }    
     const {
         name, price, picture, is_available
     } = req.body
@@ -149,9 +193,13 @@ server.get('/products/:id', async function (req, res) {
     .catch(error => console.error(error))
 });
 
-server.put('/products/:id', async (req, res) => {
+server.put('/products/:id', authorization_Admin, async (req, res) => {
     console.log("edicion de products")
+    let is_admin = req.user.is_admin
     let id_product = req.params.id;
+    if (is_admin === false){
+        return res.status(401).send('No esta autorizado para hacer modificacion')
+    }      
     const {
         name, price, picture, is_available
     } = req.body
@@ -170,8 +218,12 @@ server.put('/products/:id', async (req, res) => {
     .catch(error => res.status(500).send(error))
 });
 
-server.delete('/products/:id', async (req, res) => {
+server.delete('/products/:id', authorization_Admin, async (req, res) => {
     console.log("envio products")
+    let is_admin = req.user.is_admin
+    if (is_admin === false){
+        return res.status(401).send('Usted no esta autorizado para borrar productos')
+    }    
     let id_product = req.params.id;
     let productsInfo = [id_product];
     await sequelize.query(
@@ -189,10 +241,18 @@ server.delete('/products/:id', async (req, res) => {
 });
 
 //ORDERS
-server.get('/orders', async function (req, res) {//solo permitido para un admin
+server.get('/orders', authorization_Admin, async function (req, res) {//solo permitido para un admin
     console.log("get orders")//el user normal llamara solo sus pedidos
+    let is_admin = req.user.is_admin
+    let iduser = req.user.user
+    console.log(is_admin)
+    let sqlquery = "SELECT orders.idorders, orders.idusers, orders.total, orders.payment, orders.address, orders.date, orders.status, products.idproducts, products.name, products.price, products.picture, products.is_available FROM orders INNER JOIN orders_products ON orders.idorders = orders_products.idorders INNER JOIN products ON orders_products.idproducts = products.idproducts "
+
+    if(is_admin === false) {
+        sqlquery = sqlquery + ` WHERE idusers = '${iduser}'` 
+    }
     await sequelize.query(
-        'SELECT * FROM orders',
+        sqlquery,
         {        
             type: sequelize.QueryTypes.SELECT
         }
@@ -231,12 +291,12 @@ server.post('/orders', async (req, res) => {
                     type: sequelize.QueryTypes.INSERT
                 }
             )
-        }).then(function (product) {
-            console.log(`Agregado el producto ${product}`)
         })
         res.status(200).send("order created successfully")
     })
-    .catch(error => res.status(500).send(error))
+    .catch(error => {
+        res.status(500).send(error)
+    })
 })
 
 server.get('/orders/:id', async function (req, res) {
@@ -299,3 +359,4 @@ server.use((err, req, res, next) => {
     }
     res.status(status).send(JSON.stringify(dataError));
 });
+

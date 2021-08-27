@@ -6,7 +6,7 @@
      `telephone` INT NULL,
      `address` VARCHAR(45) NULL,
      `password` VARCHAR(45) NULL,
-     `is_admin` BIT(1) NULL,
+     `is_admin` TINYINT NULL,
      PRIMARY KEY (`idusers`)
 );
 
@@ -15,7 +15,7 @@ CREATE TABLE `delilah_resto`.`products` (
   `name` varchar(45) DEFAULT NULL,
   `price` decimal(2,0) DEFAULT NULL,
   `picture` varchar(45) DEFAULT NULL,
-  `is_available` bit(1) DEFAULT NULL,
+  `is_available` TINYINT DEFAULT NULL,
   PRIMARY KEY (`idproducts`)
 )
 
