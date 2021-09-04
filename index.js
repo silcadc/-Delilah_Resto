@@ -107,15 +107,12 @@ server.get("/users/login", function (req, res) {
         res.status(200).send(sesionToken);
     })
     .catch(function (error) {
-        console.log("way?")
-        console.log(error)
         res.status(500).send(error)
     })
 });
 
 //PRODUCTS
 server.get('/products', async function (req, res) {
-    console.log("get products")
     await sequelize.query(
         'SELECT * FROM products',
         {        
@@ -183,7 +180,6 @@ server.put('/products/:id', authorization_Admin, async (req, res) => {
         }
     )
     .then(function (products) {
-        console.log(`data updated correctly + ${products}`)
         res.status(200).send("product updated successfully")
     })
     .catch(error => res.status(500).send(error))
@@ -204,7 +200,6 @@ server.delete('/products/:id', authorization_Admin, async (req, res) => {
         }
     )
     .then(function (products) {
-        console.log(`data deleted correctly`)
         res.status(200).send("product deleted successfully")
     })
     .catch(error => res.status(500).send(error))
@@ -293,6 +288,38 @@ server.patch('/orders/:id', async (req, res) => {
         res.status(200).send("orders updated successfully")
     })
     .catch(error => res.status(500).send(error))
+});
+
+server.delete('/orders/:id', authorization_Admin, async (req, res) => {
+    let is_admin = req.user.is_admin
+    if (is_admin === false){
+        return res.status(401).send('You are not authorized to delete orders')
+    }    
+    let id_order = req.params.id;
+    let ordersInfo = [id_order];
+
+    await sequelize.query(
+        'DELETE FROM orders_products WHERE idorders = ?',
+        {
+            replacements: ordersInfo,
+            type: sequelize.QueryTypes.DELETE
+        }
+    )
+    .then(function (orders) {
+        
+        sequelize.query(
+            'DELETE FROM orders WHERE idorders = ?',
+            {
+                replacements: ordersInfo,
+                type: sequelize.QueryTypes.DELETE
+            }
+        )
+        .then(function (orders) {
+            res.status(200).send("order deleted successfully")
+        })
+        .catch(error => res.status(500).send(error))
+    })
+    .catch(error => res.status(500).send(error))   
 });
 
 //Middleware for error handling
